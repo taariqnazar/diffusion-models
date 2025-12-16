@@ -26,23 +26,23 @@ The forward diffusion process, denoted as ( q ), is a fixed Markov chain that gr
 
 The transition probability at each step ( t ) is defined as a Gaussian distribution:
 
-[
+$$
 q(x_t \mid x_{t-1}) = \mathcal{N}\left(x_t; \sqrt{1-\beta_t},x_{t-1}, \beta_t \mathbf{I}\right)
-]
+$$
 
 Here, ( \beta_t ) represents the variance schedule, a hyperparameter that controls the amount of noise added at each step. As ( t ) increases, the data ( x_0 ) is progressively corrupted. The parameters are chosen such that as ( T \to \infty ), the distribution ( x_T ) converges to an isotropic Gaussian ( \mathcal{N}(0, \mathbf{I}) ). This ensures that the reverse process can begin from a tractable prior distribution.
 
 A critical property of this Gaussian diffusion formulation is the ability to sample ( x_t ) at any arbitrary timestep ( t ) directly from ( x_0 ), without the need to iterate through all intermediate steps ( x_1, \dots, x_{t-1} ). By defining ( \alpha_t = 1 - \beta_t ) and ( \bar{\alpha}*t = \prod*{s=1}^t \alpha_s ), the marginal distribution ( q(x_t \mid x_0) ) can be derived as:
 
-[
+$$
 q(x_t \mid x_0) = \mathcal{N}\left(x_t; \sqrt{\bar{\alpha}_t},x_0, (1-\bar{\alpha}_t)\mathbf{I}\right)
-]
+$$
 
 Using the reparameterization trick, this allows us to express ( x_t ) as a linear combination of the original image and a noise variable:
 
-[
+$$
 x_t = \sqrt{\bar{\alpha}_t},x_0 + \sqrt{1-\bar{\alpha}_t},\epsilon
-]
+$$
 
 where ( \epsilon \sim \mathcal{N}(0, \mathbf{I}) ). This closed-form sampling is computationally efficient and central to the training loop, allowing the model to be trained on random timesteps in parallel batches.
 
@@ -52,15 +52,15 @@ The generative capability of the model lies in the reverse process, ( p_\theta(x
 
 For small ( \beta_t ), the reverse transition is also approximately Gaussian:
 
-[
+$$
 p_\theta(x_{t-1} \mid x_t) = \mathcal{N}\left(x_{t-1}; \mu_\theta(x_t, t), \Sigma_\theta(x_t, t)\right)
-]
+$$
 
 In the canonical DDPM implementation by Ho et al. (2020), the variance ( \Sigma_\theta(x_t, t) ) is kept fixed to ( \sigma_t^2 \mathbf{I} ), where ( \sigma_t^2 ) is typically set to ( \beta_t ) or
 
-[
+$$
 \tilde{\beta}*t = \frac{1-\bar{\alpha}*{t-1}}{1-\bar{\alpha}_t}\beta_t.
-]
+$$
 
 The primary learning task is therefore to predict the mean ( \mu_\theta(x_t, t) ).
 
@@ -68,25 +68,25 @@ The primary learning task is therefore to predict the mean ( \mu_\theta(x_t, t) 
 
 The training objective is derived from maximizing the log-likelihood of the data, which is mathematically equivalent to minimizing the variational upper bound on the negative log-likelihood:
 
-[
+$$
 \mathbb{E}*{q}[-\log p*\theta(x_0)] \le L_{\text{VLB}}.
-]
+$$
 
 The loss ( L_{\text{VLB}} ) can be decomposed into a sum of KL divergence terms between the forward process posteriors and the learned reverse conditionals. While the exact derivation is complex, Ho et al. simplified the parameterization of the mean ( \mu_\theta ). They showed that predicting the mean of the distribution is equivalent to predicting the noise ( \epsilon ) that was added to ( x_0 ) to generate ( x_t ).
 
 The relationship between the mean and the noise is given by:
 
-[
+$$
 \mu_\theta(x_t, t)=\frac{1}{\sqrt{\alpha_t}}\left(x_t - \frac{\beta_t}{\sqrt{1-\bar{\alpha}*t}}\epsilon*\theta(x_t,t)\right)
-]
+$$
 
 where ( \epsilon_\theta(x_t, t) ) is a function approximator (a neural network) that takes the noisy image ( x_t ) and the timestep ( t ) as input and outputs the estimated noise.
 
 By substituting this into the KL divergence terms and ignoring weighting coefficients that depend on ( t ), we arrive at the simplified loss function used in practice:
 
-[
+$$
 L_{\text{simple}}(\theta) = \mathbb{E}*{t, x_0, \epsilon}\left[\left| \epsilon - \epsilon*\theta\left(\sqrt{\bar{\alpha}_t}x_0 + \sqrt{1-\bar{\alpha}_t}\epsilon, t\right)\right|^2\right].
-]
+$$
 
 This objective is essentially a weighted Mean Squared Error (MSE) between the true noise ( \epsilon ) and the predicted noise ( \epsilon_\theta ). Empirical studies have shown that this simplified objective produces higher quality samples than the exact ELBO because it down-weights the loss at very small ( t ), allowing the model to focus on the more difficult denoising tasks at higher noise levels.
 
@@ -133,10 +133,10 @@ The architecture is built from Residual Blocks, Self-Attention mechanisms, and T
 
 A crucial aspect of the architecture is the injection of the timestep ( t ). The scalar ( t ) is first embedded into a vector using sinusoidal positional embeddings, similar to those used in Transformer models. This vector is passed through a Multi-Layer Perceptron (MLP) to learn a time representation.
 
-[
+$$
 PE_{(t,2i)}=\sin\left(t/10000^{2i/d_{\text{model}}}\right), \quad
 PE_{(t,2i+1)}=\cos\left(t/10000^{2i/d_{\text{model}}}\right).
-]
+$$
 
 In each Residual Block, this time embedding is projected to match the block's channel dimension and added to the feature maps. This mechanism allows the network to adapt its processing logic based on the noise level—performing coarse denoising at high ( t ) and fine detail refinement at low ( t ).
 
@@ -464,9 +464,9 @@ Training a diffusion model requires patience and precise hyperparameter tuning. 
 
 A critical component often overlooked in basic tutorials is the Exponential Moving Average (EMA) of model weights. The raw weights of the U-Net fluctuate significantly during training due to the high variance of the noise prediction task. Maintaining a shadow copy of the weights that updates slowly
 
-[
+$$
 w_{ema} = \beta w_{ema} + (1-\beta) w_{model}
-]
+$$
 
 results in a much smoother and more robust generative model. This is key to achieving low FID scores.
 
@@ -649,9 +649,9 @@ This progressive analysis confirms that the model learns global structure first 
 
 The standard sampling (Algorithm 2 from Ho et al.) is known as ancestral sampling. It is a stochastic process:
 
-[
+$$
 x_{t-1} = \frac{1}{\sqrt{\alpha_t}}\left(x_t - \frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}*t}} \epsilon*\theta(x_t, t)\right) + \sigma_t z
-]
+$$
 
 **Denoising Diffusion Implicit Models (DDIM)**
 To accelerate sampling, one can use DDIM, which formulates the reverse process as a deterministic non-Markovian chain. This allows skipping steps (e.g., generating an image in 50 steps instead of 1000). For production use cases, DDIM is preferred for speed, while DDPM is preferred for stochastic diversity.
