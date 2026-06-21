@@ -1,5 +1,5 @@
 import torch
-from classifier_model import ResNetMini
+from model import ResNetMini
 
 def load_classifier(model_path="checkpoints/classifier_mnist_resnet.pth", device=None):
     """
@@ -22,7 +22,7 @@ def load_classifier(model_path="checkpoints/classifier_mnist_resnet.pth", device
 
     # 2. Load the state dictionary
     try:
-        state_dict = torch.load(model_path, map_map_location=device)
+        state_dict = torch.load(model_path, map_location=device)
         model.load_state_dict(state_dict)
         print(f"Successfully loaded model from {model_path}")
     except FileNotFoundError:
